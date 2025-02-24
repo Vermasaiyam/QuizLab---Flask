@@ -8,6 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from flask_cors import CORS
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)
@@ -16,7 +17,10 @@ CORS(app)
 model = whisper.load_model("base")
 
 # Groq API client
-client = Groq(api_key='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')
+load_dotenv()
+api_key = os.getenv('GROQ_API_KEY')
+
+client = Groq(api_key=api_key)
 
 SCOPES = ['https://www.googleapis.com/auth/documents']
 

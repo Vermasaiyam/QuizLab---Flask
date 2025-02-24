@@ -1,10 +1,10 @@
 import os
-
+from dotenv import load_dotenv
 from groq import Groq
 
-client = Groq(
-    api_key='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',
-)
+load_dotenv()
+api_key = os.getenv('GROQ_API_KEY')
+client = Groq(api_key=api_key)
 
 user_input = input("Enter your prompt : ")
 
