@@ -13,28 +13,34 @@ from dotenv import load_dotenv
 app = Flask(__name__)
 CORS(app)
 
-# Load the base Whisper model
+# Load environment variables
+load_dotenv()
+
+# Load the base Whisper model (using tiny for low memory usage)
 model = whisper.load_model("tiny")
 
 # Groq API client
-load_dotenv()
 api_key = os.getenv('GROQ_API_KEY')
-
 client = Groq(api_key=api_key)
 
 SCOPES = ['https://www.googleapis.com/auth/documents']
 
+# Directories
 DOWNLOADS_DIR = "downloads"
+UPLOADS_DIR = "uploads"
 
 # Ensure the downloads directory exists
 if not os.path.exists(DOWNLOADS_DIR):
     os.makedirs(DOWNLOADS_DIR)
 
+# Ensure the uploads directory exists
+if not os.path.exists(UPLOADS_DIR):
+    os.makedirs(UPLOADS_DIR)
+
 # Serve the index.html page
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/download-audio', methods=['POST'])
 def download_audio():
@@ -63,7 +69,12 @@ def download_audio():
         if not os.path.exists(mp3_file):
             return jsonify({'error': 'Failed to process MP3 file'}), 500
 
-        return send_file(mp3_file, as_attachment=True, download_name=f"{video_id}.mp3", mimetype="audio/mpeg"), 200, {
+        return send_file(
+            mp3_file, 
+            as_attachment=True, 
+            download_name=f"{video_id}.mp3", 
+            mimetype="audio/mpeg"
+        ), 200, {
             "X-Video-Title": video_title,
             "X-Video-Thumbnail": thumbnail_url
         }
@@ -71,51 +82,39 @@ def download_audio():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-UPLOADS_DIR = "uploads"
-
-# Ensure the uploads directory exists at startup
-if not os.path.exists(UPLOADS_DIR):
-    os.makedirs(UPLOADS_DIR)
-
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     try:
         # Check if file is received
         if 'file' not in request.files:
             return jsonify({'error': 'No file part'}), 400
-        
+
         # Get audio file
         file = request.files['file']
-        
+
         if file.filename == '':
             return jsonify({'error': 'No selected file'}), 400
-        
-        # Save file to a directory
-        file_path = os.path.join("uploads", file.filename)
+
+        # Save file to the uploads directory
+        file_path = os.path.join(UPLOADS_DIR, file.filename)
         file.save(file_path)
 
-        # Transcribe the audio (assuming model.transcribe is correctly implemented)
+        # Transcribe the audio file
         result = model.transcribe(file_path)
-        transcription = result['text']
+        transcription = result.get('text', '')
 
-        # Return transcription as JSON response
         return jsonify({'transcription': transcription})
 
     except Exception as e:
-        # Log error message for debugging
         print("Error occurred:", e)
         return jsonify({'error': str(e)}), 500
 
-
-# API route to modify text using Groq API
 @app.route('/modify', methods=['POST'])
 def modify_text():
     data = request.json
     user_input = data.get("modification_input")
     transcription = data.get("transcription")
 
-    # Modify transcription using Groq API (Llama3-8b-8192 model)
     completion = client.chat.completions.create(
         model="llama3-8b-8192",
         messages=[{
@@ -135,11 +134,8 @@ def modify_text():
 
     return jsonify({'modified_text': modified_text})
 
-
-# Entry point for WSGI
 if __name__ == "__main__":
-    # Ensure uploads directory exists
-    if not os.path.exists('uploads'):
-        os.makedirs('uploads')
-
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    # Bind to the port provided by Render or default to 10000
+    port = int(os.environ.get("PORT", 10000))
+    # Do not use debug mode in production
+    app.run(host="0.0.0.0", port=port)
