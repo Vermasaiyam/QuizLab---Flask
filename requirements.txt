@@ -53,7 +53,7 @@ typing_extensions==4.12.2
 uritemplate==4.1.1
 urllib3==2.2.3
 gunicorn==23.0.0
-yt-dlp==2023.11.16
+yt-dlp==2025.2.19
 groq
 flask-cors
 python-dotenv
