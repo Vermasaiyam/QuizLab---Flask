@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load the base Whisper model
-model = whisper.load_model("base")
+model = whisper.load_model("tiny")
 
 # Groq API client
 load_dotenv()
