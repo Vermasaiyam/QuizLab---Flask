@@ -72,6 +72,12 @@ def download_audio():
         return jsonify({'error': str(e)}), 500
 
 
+UPLOADS_DIR = "uploads"
+
+# Ensure the uploads directory exists at startup
+if not os.path.exists(UPLOADS_DIR):
+    os.makedirs(UPLOADS_DIR)
+
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     try:
